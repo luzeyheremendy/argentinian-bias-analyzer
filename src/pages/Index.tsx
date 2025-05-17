@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { analysisService } from "@/services/analysisService";
 import { toast } from "@/components/ui/sonner";
+import { QuestionsHistory } from "@/components/QuestionsHistory";
 
 const Index = () => {
   const [aiResponse, setAiResponse] = useState("");
@@ -15,6 +16,11 @@ const Index = () => {
   const [useRealTimeAnalysis, setUseRealTimeAnalysis] = useState(false);
   const [results, setResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [questionsHistory, setQuestionsHistory] = useState<Array<{
+    question: string;
+    aiType: string;
+    timestamp: Date;
+  }>>([]);
 
   const handleAnalyze = async () => {
     if (!aiResponse.trim()) return;
@@ -25,6 +31,15 @@ const Index = () => {
     
     setIsAnalyzing(true);
     try {
+      // Add current question to history
+      if (question.trim()) {
+        setQuestionsHistory(prev => [...prev, {
+          question: question,
+          aiType: aiType,
+          timestamp: new Date()
+        }]);
+      }
+      
       const analysisResults = await analysisService.analyze({
         response: aiResponse,
         aiType,
@@ -60,28 +75,41 @@ const Index = () => {
             Analyze how biased AI responses are to political questions. Enter a question and the AI's response below.
           </p>
           
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <Analytics 
-              aiResponse={aiResponse} 
-              setAiResponse={setAiResponse}
-              aiType={aiType}
-              setAiType={setAiType}
-              question={question}
-              setQuestion={setQuestion}
-              apiKey={apiKey}
-              setApiKey={setApiKey}
-              useRealTimeAnalysis={useRealTimeAnalysis}
-              setUseRealTimeAnalysis={setUseRealTimeAnalysis}
-              onAnalyze={handleAnalyze}
-              isAnalyzing={isAnalyzing}
-            />
-          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="md:col-span-2">
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <Analytics 
+                  aiResponse={aiResponse} 
+                  setAiResponse={setAiResponse}
+                  aiType={aiType}
+                  setAiType={setAiType}
+                  question={question}
+                  setQuestion={setQuestion}
+                  apiKey={apiKey}
+                  setApiKey={setApiKey}
+                  useRealTimeAnalysis={useRealTimeAnalysis}
+                  setUseRealTimeAnalysis={setUseRealTimeAnalysis}
+                  onAnalyze={handleAnalyze}
+                  isAnalyzing={isAnalyzing}
+                />
+              </div>
 
-          {results && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <ResultsDisplay results={results} />
+              {results && (
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                  <ResultsDisplay results={results} />
+                </div>
+              )}
             </div>
-          )}
+            
+            <div className="md:col-span-1">
+              <div className="bg-white rounded-lg shadow-lg p-6 sticky top-4">
+                <QuestionsHistory 
+                  history={questionsHistory} 
+                  onSelectQuestion={(q) => setQuestion(q.question)}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </main>
       
