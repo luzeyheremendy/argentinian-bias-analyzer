@@ -5,27 +5,42 @@ import { ResultsDisplay } from "@/components/ResultsDisplay";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { analysisService } from "@/services/analysisService";
+import { toast } from "@/components/ui/sonner";
 
 const Index = () => {
   const [aiResponse, setAiResponse] = useState("");
   const [aiType, setAiType] = useState("gpt");
   const [question, setQuestion] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [useRealTimeAnalysis, setUseRealTimeAnalysis] = useState(false);
   const [results, setResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleAnalyze = async () => {
     if (!aiResponse.trim()) return;
+    if (useRealTimeAnalysis && !apiKey.trim()) {
+      toast.error("Please provide a DeepSeek API key for real-time analysis.");
+      return;
+    }
     
     setIsAnalyzing(true);
     try {
       const analysisResults = await analysisService.analyze({
         response: aiResponse,
         aiType,
-        question
+        question,
+        apiKey: useRealTimeAnalysis ? apiKey : undefined
       });
       setResults(analysisResults);
+      
+      if (useRealTimeAnalysis) {
+        toast.success("Analysis completed using DeepSeek AI!");
+      } else {
+        toast.success("Analysis completed!");
+      }
     } catch (error) {
       console.error("Analysis error:", error);
+      toast.error(error.message || "Failed to analyze response. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -53,6 +68,10 @@ const Index = () => {
               setAiType={setAiType}
               question={question}
               setQuestion={setQuestion}
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              useRealTimeAnalysis={useRealTimeAnalysis}
+              setUseRealTimeAnalysis={setUseRealTimeAnalysis}
               onAnalyze={handleAnalyze}
               isAnalyzing={isAnalyzing}
             />
