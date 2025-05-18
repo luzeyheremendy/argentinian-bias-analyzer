@@ -3,7 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Info, Compare } from "lucide-react";
+import { Loader2, Info, SplitSquareHorizontal } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
@@ -69,7 +69,7 @@ export const Analytics = ({
             onClick={() => setIsCompareMode(!isCompareMode)}
             className="flex items-center gap-2"
           >
-            <Compare size={16} />
+            <SplitSquareHorizontal size={16} />
             {isCompareMode ? "Comparing" : "Compare Two AIs"}
           </Button>
         </div>
