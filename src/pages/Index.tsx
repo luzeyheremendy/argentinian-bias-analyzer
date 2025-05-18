@@ -25,6 +25,11 @@ const Index = () => {
     response: string;
     timestamp: Date;
   }>>([]);
+  
+  // New state for comparison mode
+  const [isCompareMode, setIsCompareMode] = useState(false);
+  const [aiResponseB, setAiResponseB] = useState("");
+  const [aiTypeB, setAiTypeB] = useState("claude");
 
   // Load sample data when component mounts
   useEffect(() => {
@@ -45,33 +50,37 @@ const Index = () => {
         }]);
       }
       
-      const analysisResults = await analysisService.analyze({
+      const analysisInput: {
+        response: string;
+        aiType: string;
+        question: string;
+        compareWith?: {
+          response: string;
+          aiType: string;
+        };
+      } = {
         response: aiResponse,
         aiType,
         question
-      });
+      };
+      
+      // If in compare mode, add the second response
+      if (isCompareMode && aiResponseB.trim()) {
+        analysisInput.compareWith = {
+          response: aiResponseB,
+          aiType: aiTypeB
+        };
+      }
+      
+      const analysisResults = await analysisService.analyze(analysisInput);
       setResults(analysisResults);
       
-      toast.success("Analysis completed!");
+      toast.success(isCompareMode ? "Comparison completed!" : "Analysis completed!");
     } catch (error) {
       console.error("Analysis error:", error);
       toast.error((error as Error).message || "Failed to analyze response. Please try again.");
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-  const handleLoadSampleData = () => {
-    if (sampleData.length > 0) {
-      // Pick a random sample
-      const randomIndex = Math.floor(Math.random() * sampleData.length);
-      const sample = sampleData[randomIndex];
-      
-      setQuestion(sample.question);
-      setAiType(sample.aiType);
-      setAiResponse(sample.response);
-      
-      toast.info("Sample data loaded! Click 'Analyze Response' to analyze it.");
     }
   };
 
@@ -101,7 +110,9 @@ const Index = () => {
           </h1>
           
           <p className="text-slate-600 mb-8 text-center">
-            Analyze how biased AI responses are to political questions. Enter a question and the AI's response below.
+            {isCompareMode 
+              ? "Compare bias between two different AI responses to the same political question." 
+              : "Analyze how biased AI responses are to political questions."}
           </p>
           
           <div className="grid md:grid-cols-3 gap-6">
@@ -116,13 +127,18 @@ const Index = () => {
                   setQuestion={setQuestion}
                   onAnalyze={handleAnalyze}
                   isAnalyzing={isAnalyzing}
-                  onLoadSampleData={handleLoadSampleData}
+                  aiResponseB={aiResponseB}
+                  setAiResponseB={setAiResponseB}
+                  aiTypeB={aiTypeB}
+                  setAiTypeB={setAiTypeB}
+                  isCompareMode={isCompareMode}
+                  setIsCompareMode={setIsCompareMode}
                 />
               </div>
 
               {results && (
                 <div className="bg-white rounded-lg shadow-lg p-6">
-                  <ResultsDisplay results={results} />
+                  <ResultsDisplay results={results} isCompareMode={isCompareMode} aiType={aiType} aiTypeB={aiTypeB} />
                 </div>
               )}
             </div>
