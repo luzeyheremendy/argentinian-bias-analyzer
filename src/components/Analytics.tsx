@@ -15,7 +15,7 @@ interface AnalyticsProps {
   setQuestion: (value: string) => void;
   onAnalyze: () => void;
   isAnalyzing: boolean;
-  onLoadSampleData: () => void;
+  onLoadSampleData?: () => void;
 }
 
 export const Analytics = ({
@@ -26,8 +26,7 @@ export const Analytics = ({
   question,
   setQuestion,
   onAnalyze,
-  isAnalyzing,
-  onLoadSampleData
+  isAnalyzing
 }: AnalyticsProps) => {
   return (
     <div className="space-y-6">
@@ -75,35 +74,25 @@ export const Analytics = ({
       </div>
       
       <div className="p-4 border rounded-md bg-slate-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <span className="font-medium text-gray-700">
-              Analysis powered by Google Gemini AI
-            </span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="ml-2 cursor-help">
-                    <Info size={16} className="text-gray-400" />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs">
-                    The analysis uses Google's Gemini AI to evaluate bias in AI responses.
-                    If Gemini is unavailable, we'll fall back to our built-in analysis engine.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onLoadSampleData}
-          >
-            Load Sample Data
-          </Button>
+        <div className="flex items-center">
+          <span className="font-medium text-gray-700">
+            Analysis powered by Google Gemini AI
+          </span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="ml-2 cursor-help">
+                  <Info size={16} className="text-gray-400" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  The analysis uses Google's Gemini AI to evaluate bias in AI responses.
+                  If Gemini is unavailable, we'll fall back to our built-in analysis engine.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
