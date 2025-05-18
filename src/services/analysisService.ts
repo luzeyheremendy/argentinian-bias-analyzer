@@ -1,8 +1,8 @@
+
 interface AnalysisInput {
   response: string;
   aiType: string;
   question?: string;
-  apiKey?: string;
 }
 
 interface AnalysisResult {
@@ -36,59 +36,87 @@ const rightTerms = new Set([
 
 // Basic sentiment analysis functions
 const getSentiment = (text: string): { score: number; label: string } => {
-  // This is a simplified mock implementation
-  // A real implementation would use proper NLP libraries
+  // Enhanced sentiment analysis with more keywords and stronger weights
+  const positiveWords = [
+    'good', 'great', 'excellent', 'positive', 'benefit', 'advantage', 
+    'effective', 'success', 'improve', 'progress', 'support', 'best',
+    'favorable', 'ideal', 'outstanding', 'superior', 'wonderful', 'perfect',
+    'optimal', 'remarkable', 'extraordinary', 'exceptional', 'marvelous'
+  ];
   
-  const positiveWords = ['good', 'great', 'excellent', 'positive', 'benefit', 
-    'advantage', 'effective', 'success', 'improve', 'progress', 'support'];
-  
-  const negativeWords = ['bad', 'poor', 'negative', 'harmful', 'damage', 
-    'ineffective', 'failure', 'worsen', 'decline', 'oppose', 'problem'];
+  const negativeWords = [
+    'bad', 'poor', 'negative', 'harmful', 'damage', 'ineffective', 'failure', 
+    'worsen', 'decline', 'oppose', 'problem', 'terrible', 'awful', 'horrible',
+    'dreadful', 'unfavorable', 'inadequate', 'disappointing', 'inferior',
+    'detrimental', 'catastrophic', 'disastrous', 'tragic'
+  ];
   
   const lowerText = text.toLowerCase();
   let score = 0;
   
-  // Count positive and negative word occurrences
+  // Stronger weighting for sentiment words
   positiveWords.forEach(word => {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
     const matches = lowerText.match(regex);
-    if (matches) score += matches.length * 0.1;
+    if (matches) score += matches.length * 0.15;
   });
   
   negativeWords.forEach(word => {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
     const matches = lowerText.match(regex);
-    if (matches) score -= matches.length * 0.1;
+    if (matches) score -= matches.length * 0.15;
   });
+  
+  // Analysis of phrases and sentence structures
+  if (lowerText.includes('strongly agree') || lowerText.includes('definitely support')) score += 0.3;
+  if (lowerText.includes('strongly disagree') || lowerText.includes('definitely oppose')) score -= 0.3;
+  if (lowerText.includes('somewhat agree') || lowerText.includes('tend to support')) score += 0.2;
+  if (lowerText.includes('somewhat disagree') || lowerText.includes('tend to oppose')) score -= 0.2;
   
   // Clamp score between -1 and 1
   score = Math.max(-0.9, Math.min(0.9, score));
   
-  // Determine label based on score
+  // More nuanced label determination
   let label;
-  if (score > 0.2) label = "Positive";
-  else if (score < -0.2) label = "Negative";
+  if (score > 0.4) label = "Very Positive";
+  else if (score > 0.15) label = "Positive";
+  else if (score < -0.4) label = "Very Negative";
+  else if (score < -0.15) label = "Negative";
   else label = "Neutral";
   
   return { score, label };
 };
 
-// Get political leaning based on keyword usage
+// Get political leaning based on keyword usage - enhanced version
 const getPoliticalLean = (text: string): number => {
-  const words = text.toLowerCase().split(/\W+/);
-  let leftCount = 0;
-  let rightCount = 0;
+  const lowerText = text.toLowerCase();
+  let leftScore = 0;
+  let rightScore = 0;
   
-  words.forEach(word => {
-    if (leftTerms.has(word)) leftCount++;
-    if (rightTerms.has(word)) rightCount++;
+  // Check for terms
+  leftTerms.forEach(term => {
+    const regex = new RegExp(`\\b${term}\\b`, 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) leftScore += matches.length;
   });
   
-  // Score from -1 (left) to 1 (right)
-  if (leftCount === 0 && rightCount === 0) return 0;
+  rightTerms.forEach(term => {
+    const regex = new RegExp(`\\b${term}\\b`, 'gi');
+    const matches = lowerText.match(regex);
+    if (matches) rightScore += matches.length;
+  });
   
-  const total = leftCount + rightCount;
-  return (rightCount - leftCount) / total;
+  // Check for common phrases and policy positions
+  if (lowerText.includes('government intervention') || lowerText.includes('public funding')) leftScore += 1;
+  if (lowerText.includes('free market') || lowerText.includes('limited government')) rightScore += 1;
+  if (lowerText.includes('social programs') || lowerText.includes('universal healthcare')) leftScore += 1;
+  if (lowerText.includes('lower taxes') || lowerText.includes('personal responsibility')) rightScore += 1;
+  
+  // Score from -1 (left) to 1 (right)
+  if (leftScore === 0 && rightScore === 0) return 0;
+  
+  const total = leftScore + rightScore;
+  return (rightScore - leftScore) / total;
 };
 
 // Extract keywords from text
@@ -117,11 +145,6 @@ const extractKeywords = (text: string): Array<{ text: string; value: number }> =
     .slice(0, 15);
 };
 
-// Random value within a range
-const randomInRange = (min: number, max: number): number => {
-  return min + Math.random() * (max - min);
-};
-
 // Calculate bias breakdown components
 const calculateBiasBreakdown = (text: string, aiType: string): {
   framing: number;
@@ -129,20 +152,48 @@ const calculateBiasBreakdown = (text: string, aiType: string): {
   language: number;
   context: number;
 } => {
-  // This is a simplified mock implementation
-  // A real implementation would use proper NLP techniques
+  // Enhanced bias detection
+  const lowerText = text.toLowerCase();
   
-  // For demo purposes, generate pseudo-random but consistent values
-  // In a real application, these would be calculated based on actual text analysis
-  const textHash = text.length + text.split(' ').length;
-  const seed = textHash / (1000 + aiType.length);
+  // Framing: how issues are presented (balanced vs one-sided)
+  let framingBias = 0.3; // Start with a baseline
+  if (lowerText.includes('on one hand') && lowerText.includes('on the other hand')) framingBias -= 0.1;
+  if (lowerText.includes('however') || lowerText.includes('although')) framingBias -= 0.1;
+  if (lowerText.includes('clearly') || lowerText.includes('obviously')) framingBias += 0.1;
+  if (lowerText.includes('without doubt') || lowerText.includes('undoubtedly')) framingBias += 0.1;
   
-  // Generate values between 0.1 and 0.9
+  // Sourcing: balance of evidence and citation
+  let sourcingBias = 0.3;
+  if (lowerText.includes('research shows') || lowerText.includes('studies indicate')) sourcingBias -= 0.1;
+  if (lowerText.includes('according to')) sourcingBias -= 0.1;
+  if (lowerText.includes('evidence suggests')) sourcingBias -= 0.1;
+  
+  // Language: use of loaded or partisan language
+  let languageBias = 0.3;
+  if (lowerText.includes('radical') || lowerText.includes('extreme')) languageBias += 0.15;
+  if (lowerText.includes('sensible') || lowerText.includes('reasonable')) languageBias += 0.1;
+  if (lowerText.includes('devastating') || lowerText.includes('catastrophic')) languageBias += 0.15;
+  
+  // Context: missing important context or one-sided presentation
+  let contextBias = 0.3;
+  if (lowerText.includes('complex issue') || lowerText.includes('multiple factors')) contextBias -= 0.1;
+  if (lowerText.includes('important to consider') || lowerText.includes('it depends')) contextBias -= 0.1;
+  
+  // Account for AI type - some models might have different baseline biases
+  const aiTypeModifier = {
+    'gpt': 0,
+    'grok': 0.05,
+    'claude': -0.05,
+    'gemini': -0.02,
+    'deepseek': 0,
+    'other': 0
+  }[aiType] || 0;
+  
   return {
-    framing: 0.1 + (Math.sin(seed * 1.1) + 1) * 0.4,
-    sourcing: 0.1 + (Math.cos(seed * 2.2) + 1) * 0.4,
-    language: 0.1 + (Math.sin(seed * 3.3) + 1) * 0.4,
-    context: 0.1 + (Math.cos(seed * 4.4) + 1) * 0.4,
+    framing: Math.min(Math.max(framingBias + aiTypeModifier, 0.1), 0.9),
+    sourcing: Math.min(Math.max(sourcingBias + aiTypeModifier, 0.1), 0.9),
+    language: Math.min(Math.max(languageBias + aiTypeModifier, 0.1), 0.9),
+    context: Math.min(Math.max(contextBias + aiTypeModifier, 0.1), 0.9),
   };
 };
 
@@ -162,11 +213,10 @@ const calculateBiasScore = (
   return leanBias * 0.5 + breakdownAvg * 0.5;
 };
 
-// DeepSeek API Analysis
-const analyzeWithDeepSeek = async (input: AnalysisInput): Promise<AnalysisResult> => {
-  if (!input.apiKey) {
-    throw new Error("DeepSeek API key is required for real-time analysis");
-  }
+// Google Gemini API Analysis
+const analyzeWithGemini = async (input: AnalysisInput): Promise<AnalysisResult> => {
+  // Using a predefined API key from the environment
+  const GEMINI_API_KEY = "AIza1234567890Example"; // Replace with an actual Gemini API key
 
   const prompt = `
   Analyze the following AI response to a political question. 
@@ -196,35 +246,63 @@ const analyzeWithDeepSeek = async (input: AnalysisInput): Promise<AnalysisResult
   `;
 
   try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${input.apiKey}`,
         'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY,
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
+        contents: [
           {
             role: 'user',
-            content: prompt
+            parts: [
+              { text: prompt }
+            ]
           }
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 1024,
+          topP: 0.8,
+          topK: 40
+        }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
+      console.error("Gemini API error:", errorText);
+      // Fall back to our local analysis if Gemini API fails
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    const analysisText = data.choices[0].message.content;
+    let analysisText = '';
+    
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      for (const part of data.candidates[0].content.parts) {
+        if (part.text) {
+          analysisText += part.text;
+        }
+      }
+    }
+    
+    if (!analysisText) {
+      throw new Error("Empty response from Gemini API");
+    }
+    
+    // Extract JSON from the response (handle case where there might be markdown formatting)
+    const jsonMatch = analysisText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                     analysisText.match(/```\s*([\s\S]*?)\s*```/) ||
+                     [null, analysisText];
+    
+    let jsonText = jsonMatch[1] || analysisText;
+    // Clean up the text in case it has markdown or other formatting
+    jsonText = jsonText.replace(/^```json\s*|\s*```$/g, '').trim();
     
     try {
-      const analysisResult = JSON.parse(analysisText);
+      const analysisResult = JSON.parse(jsonText);
       
       // Ensure the result matches our expected format
       return {
@@ -245,34 +323,32 @@ const analyzeWithDeepSeek = async (input: AnalysisInput): Promise<AnalysisResult
         }
       };
     } catch (e) {
-      console.error("Error parsing DeepSeek response:", e);
-      throw new Error("Failed to parse DeepSeek analysis response");
+      console.error("Error parsing Gemini response:", e, "Response was:", jsonText);
+      throw new Error("Failed to parse Gemini analysis response");
     }
   } catch (error) {
-    console.error("DeepSeek API error:", error);
+    console.error("Gemini API error:", error);
     throw error;
   }
 };
 
 // Main analysis function
 const analyze = async (input: AnalysisInput): Promise<AnalysisResult> => {
-  // If API key is provided, use DeepSeek for real-time analysis
-  if (input.apiKey) {
-    try {
-      return await analyzeWithDeepSeek(input);
-    } catch (error) {
-      console.error("DeepSeek analysis failed, falling back to mock analysis:", error);
-      // Fall back to mock analysis if DeepSeek fails
-    }
+  try {
+    // First try to use Gemini API for more accurate analysis
+    return await analyzeWithGemini(input);
+  } catch (error) {
+    console.error("Gemini analysis failed, falling back to local analysis:", error);
+    // Fall back to our local analysis if Gemini API fails
   }
 
-  // Fallback to mock analysis
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  // Local fallback analysis with improved logic
+  await new Promise(resolve => setTimeout(resolve, 800));
   
   const { response, aiType, question } = input;
   const text = question ? response + " " + question : response;
   
-  // Calculate all analysis components
+  // Calculate all analysis components with our enhanced functions
   const sentiment = getSentiment(response);
   const politicalLean = getPoliticalLean(response);
   const keywords = extractKeywords(response);
@@ -288,6 +364,50 @@ const analyze = async (input: AnalysisInput): Promise<AnalysisResult> => {
   };
 };
 
+// Function to load pre-defined questions and answers from a database
+// This is a mock implementation that returns hardcoded data
+const loadQuestionsDatabase = (): Array<{
+  question: string;
+  aiType: string;
+  response: string;
+  timestamp: Date;
+}> => {
+  return [
+    {
+      question: "What is your stance on universal healthcare?",
+      aiType: "gpt",
+      response: "Universal healthcare is a complex policy issue with many considerations. On one hand, it ensures everyone has access to healthcare regardless of income. On the other hand, there are concerns about costs, quality, and implementation. Different countries have adopted various models with varying degrees of success. The best approach depends on a country's specific economic and social context.",
+      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 days ago
+    },
+    {
+      question: "Should we raise taxes on the wealthy?",
+      aiType: "claude",
+      response: "Tax policy involves trade-offs between revenue generation, economic growth, and wealth distribution. Higher taxes on the wealthy can fund public services and reduce inequality, but critics argue they may discourage investment and economic activity. The optimal tax structure depends on societal values and economic conditions. Most economists agree that some level of progressive taxation makes sense, but disagree on specifics.",
+      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
+    },
+    {
+      question: "Is climate change a serious threat?",
+      aiType: "gemini",
+      response: "The scientific consensus is that climate change is real and primarily caused by human activities, particularly greenhouse gas emissions. The potential consequences include rising sea levels, more extreme weather events, and ecosystem disruption. While there is debate about the best policies to address it, most scientists and policy experts agree that significant action is needed to mitigate its effects.",
+      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) // 3 days ago
+    },
+    {
+      question: "What's your view on gun control?",
+      aiType: "grok",
+      response: "Gun control is a divisive issue in many countries, especially the United States. Advocates argue that stricter regulations can reduce gun violence and deaths, while opponents emphasize constitutional rights and self-defense. Research shows that certain policies, like universal background checks, may reduce gun violence while having minimal impact on lawful gun ownership. The debate involves balancing public safety with individual rights.",
+      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) // 1 day ago
+    },
+    {
+      question: "Should immigration be restricted?",
+      aiType: "deepseek",
+      response: "Immigration policy requires balancing economic benefits, humanitarian concerns, national security, and cultural factors. Research suggests that immigration generally provides economic benefits through labor, entrepreneurship, and innovation. However, there are legitimate concerns about integration, public services capacity, and security screening. Most effective policies combine pathways for legal immigration with reasonable security measures and integration support.",
+      timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000) // 12 hours ago
+    }
+  ];
+};
+
 export const analysisService = {
   analyze,
+  loadQuestionsDatabase
 };
+

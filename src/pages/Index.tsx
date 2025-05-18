@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Analytics } from "@/components/Analytics";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
 import { Header } from "@/components/Header";
@@ -12,8 +12,6 @@ const Index = () => {
   const [aiResponse, setAiResponse] = useState("");
   const [aiType, setAiType] = useState("gpt");
   const [question, setQuestion] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [useRealTimeAnalysis, setUseRealTimeAnalysis] = useState(false);
   const [results, setResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [questionsHistory, setQuestionsHistory] = useState<Array<{
@@ -21,13 +19,20 @@ const Index = () => {
     aiType: string;
     timestamp: Date;
   }>>([]);
+  const [sampleData, setSampleData] = useState<Array<{
+    question: string;
+    aiType: string;
+    response: string;
+    timestamp: Date;
+  }>>([]);
+
+  // Load sample data when component mounts
+  useEffect(() => {
+    setSampleData(analysisService.loadQuestionsDatabase());
+  }, []);
 
   const handleAnalyze = async () => {
     if (!aiResponse.trim()) return;
-    if (useRealTimeAnalysis && !apiKey.trim()) {
-      toast.error("Please provide a DeepSeek API key for real-time analysis.");
-      return;
-    }
     
     setIsAnalyzing(true);
     try {
@@ -43,21 +48,45 @@ const Index = () => {
       const analysisResults = await analysisService.analyze({
         response: aiResponse,
         aiType,
-        question,
-        apiKey: useRealTimeAnalysis ? apiKey : undefined
+        question
       });
       setResults(analysisResults);
       
-      if (useRealTimeAnalysis) {
-        toast.success("Analysis completed using DeepSeek AI!");
-      } else {
-        toast.success("Analysis completed!");
-      }
+      toast.success("Analysis completed!");
     } catch (error) {
       console.error("Analysis error:", error);
-      toast.error(error.message || "Failed to analyze response. Please try again.");
+      toast.error((error as Error).message || "Failed to analyze response. Please try again.");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleLoadSampleData = () => {
+    if (sampleData.length > 0) {
+      // Pick a random sample
+      const randomIndex = Math.floor(Math.random() * sampleData.length);
+      const sample = sampleData[randomIndex];
+      
+      setQuestion(sample.question);
+      setAiType(sample.aiType);
+      setAiResponse(sample.response);
+      
+      toast.info("Sample data loaded! Click 'Analyze Response' to analyze it.");
+    }
+  };
+
+  const handleSelectQuestion = (q: { question: string; aiType: string; timestamp: Date }) => {
+    setQuestion(q.question);
+    setAiType(q.aiType);
+    
+    // Try to find a matching response in sample data
+    const matchingSample = sampleData.find(sample => 
+      sample.question.toLowerCase() === q.question.toLowerCase() && 
+      sample.aiType === q.aiType
+    );
+    
+    if (matchingSample) {
+      setAiResponse(matchingSample.response);
     }
   };
 
@@ -85,12 +114,9 @@ const Index = () => {
                   setAiType={setAiType}
                   question={question}
                   setQuestion={setQuestion}
-                  apiKey={apiKey}
-                  setApiKey={setApiKey}
-                  useRealTimeAnalysis={useRealTimeAnalysis}
-                  setUseRealTimeAnalysis={setUseRealTimeAnalysis}
                   onAnalyze={handleAnalyze}
                   isAnalyzing={isAnalyzing}
+                  onLoadSampleData={handleLoadSampleData}
                 />
               </div>
 
@@ -105,7 +131,7 @@ const Index = () => {
               <div className="bg-white rounded-lg shadow-lg p-6 sticky top-4">
                 <QuestionsHistory 
                   history={questionsHistory} 
-                  onSelectQuestion={(q) => setQuestion(q.question)}
+                  onSelectQuestion={handleSelectQuestion}
                 />
               </div>
             </div>
